@@ -33,7 +33,7 @@ func (app *App) RunPeriodicTasks() {
 	// Рассчитываем время до ближайшей отправки отчёта о картах в ЕРЦ.
 	startTime := time.Time(app.cfg.Email.SendReportAt)
 	if startTime.Before(time.Now()) { // если время отправки отчёта уже прошло
-		startTime = time.Now().Add(time.Hour * 24) // то начинаем с завтрашнего дня
+		startTime = startTime.Add(time.Hour * 24) // то начинаем с завтрашнего дня
 		app.logger.Info("Следующий отчёт о картах будет отправлен", zap.Time("at", startTime))
 	}
 	app.emailSenderScheduler = scheduler.NewTimedExecutor(

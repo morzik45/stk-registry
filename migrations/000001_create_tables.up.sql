@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS persons_from_erc
     "id"            SERIAL PRIMARY KEY,
     "erc_update_id" INTEGER NOT NULL REFERENCES erc_updates (id) ON DELETE CASCADE,
     "snils"         VARCHAR NOT NULL,
-    "birthdate"      DATE    NOT NULL,
+    "birthdate"     DATE    NOT NULL,
     "family"        VARCHAR NOT NULL,
     "name"          VARCHAR NOT NULL,
     "patronymic"    VARCHAR NOT NULL DEFAULT '',
@@ -95,10 +95,10 @@ CREATE TABLE IF NOT EXISTS sent_to_erc
 CREATE TABLE IF NOT EXISTS correct_person_data
 (
     "snils"      VARCHAR(11) PRIMARY KEY,
-    "family"     VARCHAR     NOT NULL,
-    "name"       VARCHAR     NOT NULL,
-    "patronymic" VARCHAR     NOT NULL DEFAULT '',
-    "birthdate"   DATE        NOT NULL
+    "family"     VARCHAR NOT NULL,
+    "name"       VARCHAR NOT NULL,
+    "patronymic" VARCHAR NOT NULL DEFAULT '',
+    "birthdate"  DATE    NOT NULL
 );
 
 COMMIT;
