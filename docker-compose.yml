@@ -1,0 +1,82 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:13-alpine
+    container_name: register_pq
+    restart: always
+    expose:
+      - "5432"
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    environment:
+      TZ: "Asia/Yekaterinburg"
+      PGTZ: "Asia/Yekaterinburg"
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - pg-data:/var/lib/postgresql/data/
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  backups:
+    image: prodrigestivill/postgres-backup-local # TODO: заменить на schickling/postgres-backup-s3
+    restart: always
+    user: postgres:postgres
+    ports:
+      - "8080:8080"
+    volumes:
+      - pg-backups:/backups
+    links:
+      - postgres
+    depends_on:
+      - postgres
+    environment:
+      - POSTGRES_HOST=postgres
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_EXTRA_OPTS=-Z6 --schema=public --blobs
+      - SCHEDULE=@daily
+      - BACKUP_KEEP_DAYS=7
+      - BACKUP_KEEP_WEEKS=4
+      - BACKUP_KEEP_MONTHS=6
+      - HEALTHCHECK_PORT=8080
+
+  registry:
+    image: ghcr.io/morzik45/stk-registry:latest
+    container_name: registry
+    restart: always
+    ports:
+      - "80:${WEB_LOCAL_PORT}"
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_PORT=${POSTGRES_PORT}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_HOST=postgres
+      - POSTGRES_SSL_MODE=${POSTGRES_SSL_MODE}
+      - LOG_LEVEL=${LOG_LEVEL}
+      - LOG_PATH=/var/log/vkdumps/registry.log
+      - LOG_TG_ENABLED=${LOG_TG_ENABLED}
+      - LOG_TG_TOKEN=${LOG_TG_TOKEN}
+      - LOG_TG_USERS_IDS=${LOG_TG_USERS_IDS}
+      - LOG_TG_LEVEL=${LOG_TG_LEVEL}
+      - WEB_LOCAL_PORT=${WEB_LOCAL_PORT}
+      - ORGANIZATION=${ORGANIZATION}
+      - INIT_DATE=${INIT_DATE}
+      - EMAIL_HOST=${EMAIL_HOST}
+      - EMAIL_PORT_POP3=${EMAIL_PORT_POP3}
+      - EMAIL_PORT_SMTP=${EMAIL_PORT_SMTP}
+      - EMAIL_USERNAME=${EMAIL_USERNAME}
+      - EMAIL_PASSWORD=${EMAIL_PASSWORD}
+      - EMAIL_FROM_ERC=${EMAIL_FROM_ERC}
+      - EMAIL_TO_ERC=${EMAIL_TO_ERC}
+      - EMAIL_SEND_REPORT_AT=${EMAIL_SEND_REPORT_AT}
+    volumes:
+      - logs:/var/log/vkdumps
