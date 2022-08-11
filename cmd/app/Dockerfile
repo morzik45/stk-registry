@@ -3,10 +3,10 @@ LABEL stage=builder
 WORKDIR /usr/src/app
 
 COPY package.json /usr/src/app/package.json
-COPY package-lock.json /usr/src/app/package-lock.json
-RUN npm install
+COPY yarn.json /usr/src/app/yarn.json
+RUN yarn install
 COPY . /usr/src/app
-RUN npm run build
+RUN yarn build
 
 FROM golang:1.18-alpine as builder-go
 LABEL stage=builder
