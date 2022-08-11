@@ -26,5 +26,5 @@ FROM scratch as runner
 COPY --from=builder-go /usr/share/zoneinfo/Asia/Yekaterinburg /etc/localtime
 COPY --from=builder-go /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=builder-go /usr/src/app/registry /opt/app/
-COPY ./migrations /opt/app/migrations
+COPY ./migrations /migrations
 CMD ["/opt/app/registry"]
