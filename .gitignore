@@ -19,7 +19,6 @@
 /.idea/
 /.vscode/
 
-# Examples
 /*.txt
 /node_modules/
 /dist/
@@ -27,3 +26,4 @@
 /logs/
 /pg-data/
 /pg-backup/
+.env

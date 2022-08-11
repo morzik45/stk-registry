@@ -29,7 +29,7 @@ func ParseRowFromRSTK(data string) (postgres.PersonFromRSTK, error) {
 	}
 
 	fio := strings.Split(Trim(rows[0]), " ")
-	if len(fio) != 3 {
+	if len(fio) < 2 {
 		return postgres.PersonFromRSTK{}, fmt.Errorf("invalid row: %s", data)
 	}
 	r.Family, err = parser.String(fio[0])
@@ -40,9 +40,14 @@ func ParseRowFromRSTK(data string) (postgres.PersonFromRSTK, error) {
 	if err != nil {
 		r.Errors = append(r.Errors, err.Error())
 	}
-	r.Patronymic, err = parser.String(fio[2])
-	if err != nil {
-		r.Errors = append(r.Errors, err.Error())
+	if len(fio) == 3 {
+		r.Patronymic, err = parser.String(fio[2])
+		if err != nil {
+			r.Errors = append(r.Errors, err.Error())
+		}
+	} else {
+		r.Patronymic = ""
+		r.Errors = append(r.Errors, "Не указанно отчество")
 	}
 
 	r.Date, err = parser.Date(Trim(rows[2]))
@@ -82,6 +87,7 @@ func ParseDocumentFromRSTK(reader io.Reader) (rs []postgres.PersonFromRSTK, type
 				log.Printf("invalid document, unknown type: %s", line)
 				return nil, 0
 			}
+			continue
 		}
 
 		// Пропускаем пустые строки
