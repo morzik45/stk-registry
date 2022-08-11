@@ -16,7 +16,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
-      - pg-data:/var/lib/postgresql/data/
+      - ./pg-data:/var/lib/postgresql/data/
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
       interval: 10s
@@ -31,7 +31,7 @@ services:
     ports:
       - "8080:8080"
     volumes:
-      - pg-backups:/backups
+      - ./pg-backups:/backups
     links:
       - postgres
     depends_on:
@@ -79,4 +79,4 @@ services:
       - EMAIL_TO_ERC=${EMAIL_TO_ERC}
       - EMAIL_SEND_REPORT_AT=${EMAIL_SEND_REPORT_AT}
     volumes:
-      - logs:/var/log/vkdumps
+      - ./logs:/var/log/vkdumps
