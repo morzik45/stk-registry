@@ -15,7 +15,7 @@ import (
 func parseRowFromErc(data string, correctData *postgres.CorrectPersonsData) (r postgres.PersonFromERC, err error) {
 	rows := strings.Split(data, "|")
 	if len(rows) != 13 {
-		return postgres.PersonFromERC{}, fmt.Errorf("invalid row: %s", string(data))
+		return postgres.PersonFromERC{}, fmt.Errorf("invalid row: %s", data)
 	}
 
 	// TODO: Переписать, полная хрень...

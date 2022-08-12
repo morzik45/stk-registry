@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/jmoiron/sqlx"
 	"github.com/morzik45/stk-registry/pkg/persons"
 	"github.com/morzik45/stk-registry/pkg/postgres"
 	"github.com/morzik45/stk-registry/pkg/utils"
@@ -16,6 +17,8 @@ func (app *App) initBackend() {
 	api.GET("/health", app.health)
 
 	api.GET("/retiree", app.retiree)
+	api.GET("/breakers", app.breakersView)
+	api.POST("/breakers/check", app.breakersSet)
 
 	updates := api.Group("/updates")
 	updates.GET("", app.getUpdatesInfo)
@@ -23,6 +26,7 @@ func (app *App) initBackend() {
 	updates.POST("/uploadRSTK", app.uploadRSTK)
 	updates.DELETE("/rstk/:id", app.deleteRSTK)
 	updates.POST("/make-rstk-excel", app.makeRstkExcel)
+
 }
 
 func (app *App) makeRstkExcel(c *gin.Context) {
@@ -123,7 +127,9 @@ func (app *App) uploadRSTK(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	defer tx.Rollback()
+	defer func(tx *sqlx.Tx) {
+		_ = tx.Rollback()
+	}(tx)
 
 	ru := postgres.RstkUpdate{TypeID: t, FromDate: fromDate}
 	err = app.db.RstkUpdates.Create(c.Request.Context(), &ru, tx)

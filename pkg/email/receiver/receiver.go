@@ -58,6 +58,15 @@ func (r *Receiver) GetLastEmail() (last time.Time) {
 // Connect to the server.
 func (r *Receiver) connect() (err error) {
 	r.connMutex.Lock()
+	var isConnected bool
+	defer func(isConnected *bool) {
+		// Отпускаем блокировку потому что не получилось подключиться
+		// и метод disconnect не вызовется, блокировка останется навечно.
+		if !*isConnected {
+			r.connMutex.Unlock()
+		}
+	}(&isConnected)
+
 	r.logger.Info("Connecting to mail server...")
 	r.conn, err = r.client.NewConn()
 	if err != nil {
@@ -75,6 +84,7 @@ func (r *Receiver) connect() (err error) {
 		)
 		return err
 	}
+	isConnected = true
 	r.logger.Info("Connected to mail server.")
 	return nil
 }

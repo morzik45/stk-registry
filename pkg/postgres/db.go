@@ -22,6 +22,7 @@ type DB struct {
 	RstkUpdates        *RstkUpdates
 	PersonsFromRSTK    *PersonsFromRSTK
 	CorrectPersonsData *CorrectPersonsData
+	Breakers           *Breakers
 }
 
 func NewDB(ctx context.Context, cfg *config.Config, logger *zap.Logger) (db *DB, err error) {
@@ -69,6 +70,12 @@ func NewDB(ctx context.Context, cfg *config.Config, logger *zap.Logger) (db *DB,
 		return
 	}
 	db.needClose = append(db.needClose, db.CorrectPersonsData)
+
+	db.Breakers, err = NewBreakers(ctx, db.DB, logger)
+	if err != nil {
+		return
+	}
+	db.needClose = append(db.needClose, db.Breakers)
 
 	return
 }

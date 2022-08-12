@@ -12,9 +12,9 @@
 <!--      <el-menu-item index="2"-->
 <!--        ><router-link to="/retirees"> Льготники</router-link>-->
 <!--      </el-menu-item>-->
-<!--      <el-menu-item index="3"-->
-<!--        ><router-link to="/breakers"> Нарушители</router-link>-->
-<!--      </el-menu-item>-->
+      <el-menu-item index="3"
+        ><router-link to="/breakers"> Нарушители</router-link>
+      </el-menu-item>
 
       <el-menu-item index="4"
         ><router-link to="/updates"> Обновления</router-link>

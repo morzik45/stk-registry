@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/jmoiron/sqlx"
 	"github.com/morzik45/stk-registry/pkg/email/sender"
 	"github.com/morzik45/stk-registry/pkg/scheduler"
 	"github.com/morzik45/stk-registry/pkg/utils"
@@ -16,10 +17,13 @@ func (app *App) RunPeriodicTasks() {
 	// Периодически проверяем почту на новые сообщения от ЕРЦ.
 	// Откладываем проверку на минуту для ожидания полной инициализации приложения и
 	// спама при падении приложения после запуска и постоянного рестарта.
-	// TODO: переделать на конфиг
 	if len(app.cfg.Email.FromErc) > 0 {
-		app.emailCheckerScheduler = scheduler.NewTimedExecutor(time.Minute, time.Minute*20)
+		app.emailCheckerScheduler = scheduler.NewTimedExecutor(
+			time.Minute,
+			app.cfg.Email.CheckInterval,
+		)
 		app.emailCheckerScheduler.Start(func() {
+			defer utils.Recover(app.logger)
 			isHaveNew, err := app.emailReceiver.GetNewFromErc()
 			if err != nil {
 				app.logger.Error("failed to get new from erc", zap.Error(err))
@@ -41,6 +45,7 @@ func (app *App) RunPeriodicTasks() {
 		time.Hour*24,          // периодичность запуска
 	)
 	app.emailSenderScheduler.Start(func() {
+		defer utils.Recover(app.logger)
 		ctxMinute, cancel := context.WithTimeout(context.Background(), time.Second*60)
 		defer cancel()
 		err := app.MakeAndSendReportToERC(ctxMinute)
@@ -58,7 +63,9 @@ func (app *App) MakeAndSendReportToERC(ctx context.Context) error {
 		app.logger.Error("failed to begin transaction", zap.Error(err))
 		return err
 	}
-	defer tx.Rollback()
+	defer func(tx *sqlx.Tx) {
+		_ = tx.Rollback()
+	}(tx)
 
 	// Собираем данные для отчета
 	r, err := app.db.RstkUpdates.ReportForErcWithMark(ctx, tx)

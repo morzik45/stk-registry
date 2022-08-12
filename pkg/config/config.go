@@ -43,14 +43,15 @@ type Config struct {
 		Hostname  string `env:"WEB_HOSTNAME"`
 	}
 	Email struct {
-		Host         string    `env:"EMAIL_HOST"`
-		PortPOP3     int       `env:"EMAIL_PORT_POP3" envDefault:"110"`
-		PortSMTP     int       `env:"EMAIL_PORT_SMTP" envDefault:"25"`
-		Username     string    `env:"EMAIL_USERNAME"`
-		Password     string    `env:"EMAIL_PASSWORD"`
-		FromErc      string    `env:"EMAIL_FROM_ERC"`
-		ToErc        []string  `env:"EMAIL_TO_ERC"`
-		SendReportAt TimeToday `env:"EMAIL_SEND_REPORT_AT" envDefault:"06:00"`
+		Host          string        `env:"EMAIL_HOST"`
+		PortPOP3      int           `env:"EMAIL_PORT_POP3" envDefault:"110"`
+		PortSMTP      int           `env:"EMAIL_PORT_SMTP" envDefault:"25"`
+		Username      string        `env:"EMAIL_USERNAME"`
+		Password      string        `env:"EMAIL_PASSWORD"`
+		FromErc       string        `env:"EMAIL_FROM_ERC"`
+		ToErc         []string      `env:"EMAIL_TO_ERC"`
+		SendReportAt  TimeToday     `env:"EMAIL_SEND_REPORT_AT" envDefault:"06:00"`
+		CheckInterval time.Duration `env:"EMAIL_CHECK_INTERVAL" envDefault:"30m"`
 	}
 	Postgres struct {
 		Host     string `env:"POSTGRES_HOST" envDefault:"localhost"`

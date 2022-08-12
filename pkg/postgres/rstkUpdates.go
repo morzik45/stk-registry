@@ -150,6 +150,7 @@ func (ru *RstkUpdates) initGetInfo(ctx context.Context) (func(ctx context.Contex
 					  FROM persons_from_rstk pfr
 					  WHERE pfr."rstk_update_id" = ru."id" AND pfr."errors" IS NOT NULL) d), '[]')    AS "errors"
 		FROM rstk_updates AS ru
+		ORDER BY ru.uploaded_at DESC;
 		`)
 	if err != nil {
 		return nil, nil, err
