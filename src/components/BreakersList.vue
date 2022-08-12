@@ -155,30 +155,32 @@ export default {
         });
     },
     getCheckButtonType(ch) {
-      return ch === "false" ? "info" : "success";
+      return !ch ? "info" : "success";
     },
     checkSnils(scope) {
-      BreakersDataService.check(scope.row.snils)
+      BreakersDataService.check(scope.row.snils, !scope.row.checked)
         .then((response) => {
           console.log(response.data);
-          if (response.data[scope.row.snils] === "true") {
-            scope.row.checked = true;
-          } else if (response.data[scope.row.snils] === "false") {
-            scope.row.checked = "false";
+          if (response.data.status === "ok") {
+            if (response.data.data.checked) {
+              scope.row.checked = true;
+            } else  {
+              scope.row.checked = false;
+            }
+            console.log(scope.row.checked);
           }
-          console.log(scope.row.checked);
         })
         .catch((e) => {
           console.log(e);
         });
     },
     tableRowClassName({ row }) {
-      return row.checked == "false" ? "background: #fdf6ec; border-color: #f5dab1;" : "";
+      return row.checked ? "background: #fdf6ec; border-color: #f5dab1;" : "";
     },
     breakersRetirees() {
       BreakersDataService.getAll()
         .then((response) => {
-          this.breakers = response.data;
+          this.breakers = response.data.data;
           this.loading = false;
         })
         .catch((e) => {
@@ -194,7 +196,7 @@ export default {
   },
   computed: {
     tableData: function () {
-      var temp = this.breakers;
+      let temp = this.breakers;
 
       if (this.fromDates) {
         temp = temp.filter((data) =>
@@ -208,7 +210,7 @@ export default {
       }
 
       if (this.onlyCheckedBrackers) {
-        return temp.filter((data) => data.checked == "false");
+        return temp.filter((data) => !data.checked);
       } else {
         return temp;
       }

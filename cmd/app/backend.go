@@ -16,6 +16,8 @@ func (app *App) initBackend() {
 	api.GET("/health", app.health)
 
 	api.GET("/retiree", app.retiree)
+	api.GET("/breakers", app.breakersView)
+	api.POST("/breakers/check", app.breakersSet)
 
 	updates := api.Group("/updates")
 	updates.GET("", app.getUpdatesInfo)
@@ -23,6 +25,7 @@ func (app *App) initBackend() {
 	updates.POST("/uploadRSTK", app.uploadRSTK)
 	updates.DELETE("/rstk/:id", app.deleteRSTK)
 	updates.POST("/make-rstk-excel", app.makeRstkExcel)
+
 }
 
 func (app *App) makeRstkExcel(c *gin.Context) {
