@@ -91,7 +91,7 @@ func (br *Breakers) initCreate(ctx context.Context) (func(ctx context.Context, b
 		VALUES (:snils, :checked)
 		RETURNING id, snils, checked, datetime;
 	`
-	stmt, err := br.db.PrepareNamed(query)
+	stmt, err := br.db.PrepareNamedContext(ctx, query)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -139,7 +139,7 @@ func (br *Breakers) initGetView(ctx context.Context) (func(ctx context.Context, 
 				 INNER JOIN persons_from_erc e ON r.snils = e.snils
 		ORDER BY r.number DESC;
 	`
-	stmt, err := br.db.PrepareNamed(query)
+	stmt, err := br.db.PrepareNamedContext(ctx, query)
 	if err != nil {
 		return nil, nil, err
 	}

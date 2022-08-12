@@ -53,7 +53,7 @@ func Snils(data string) (string, error) {
 	}
 
 	if checksum != fSnils[hashLen:] {
-		return fSnils, fmt.Errorf("invalid snils, incrorrect checksum: %s", string(data))
+		return fSnils, fmt.Errorf("invalid snils, incrorrect checksum: %s", data)
 	}
 
 	return fSnils, nil

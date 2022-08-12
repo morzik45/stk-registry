@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/jmoiron/sqlx"
 	"github.com/morzik45/stk-registry/pkg/persons"
 	"github.com/morzik45/stk-registry/pkg/postgres"
 	"github.com/morzik45/stk-registry/pkg/utils"
@@ -126,7 +127,9 @@ func (app *App) uploadRSTK(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	defer tx.Rollback()
+	defer func(tx *sqlx.Tx) {
+		_ = tx.Rollback()
+	}(tx)
 
 	ru := postgres.RstkUpdate{TypeID: t, FromDate: fromDate}
 	err = app.db.RstkUpdates.Create(c.Request.Context(), &ru, tx)
