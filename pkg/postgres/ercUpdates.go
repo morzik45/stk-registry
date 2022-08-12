@@ -181,7 +181,8 @@ func (eus *ErcUpdates) initGetInfo(ctx context.Context) (func(ctx context.Contex
 					  FROM persons_from_erc pfe
 					  WHERE pfe."erc_update_id" = eu.id AND pfe.errors IS NOT NULL) d), '[]')    AS "incorrect"
 		FROM erc_updates AS eu
-				 LEFT JOIN emails e on e.id = eu.email_id;`,
+				 LEFT JOIN emails e on e.id = eu.email_id
+		ORDER BY e.datetime_received DESC ;`,
 	)
 	if err != nil {
 		return nil, nil, err
