@@ -113,31 +113,34 @@ func (br *Breakers) GetView(ctx context.Context, tx *sqlx.Tx) ([]BreakerView, er
 
 func (br *Breakers) initGetView(ctx context.Context) (func(ctx context.Context, tx *sqlx.Tx) ([]BreakerView, error), *sqlx.NamedStmt, error) {
 	query := `
-		SELECT DISTINCT ON (r.number) r.number                                         AS pan,
-									  r.date                                           AS date,
-									  r.snils                                          AS snils,
-									  r.family || ' ' || r.name || ' ' || r.patronymic AS name,
-									  COALESCE((SELECT b.checked
-												FROM breakers b
-												WHERE b.snils = r.snils
-												ORDER BY datetime DESC
-												LIMIT 1), FALSE)                       AS checked,
+		WITH A AS (SELECT DISTINCT ON (r.number) r.number                                         AS pan,
+												 r.date                                           AS date,
+												 r.snils                                          AS snils,
+												 r.family || ' ' || r.name || ' ' || r.patronymic AS name,
+												 COALESCE((SELECT b.checked
+														   FROM breakers b
+														   WHERE b.snils = r.snils
+														   ORDER BY datetime DESC
+														   LIMIT 1), FALSE)                       AS checked,
 		
-									  (SELECT to_json(array_agg(row_to_json(d)))
-									   FROM (SELECT r1.date                               AS timestamp,
-													'Активирована карта с №' || r1.number AS content
-											 FROM persons_from_rstk r1
-											 WHERE r1.snils = r.snils
-											 UNION ALL
-											 SELECT e1.date                             AS timestamp,
-													'Куплено ' || e1.count || 'талонов' AS content
-											 FROM persons_from_erc e1
-											 WHERE e1.snils = r.snils
-											 ORDER BY timestamp) AS d)
-																					   AS timeline
-		FROM persons_from_rstk r
-				 INNER JOIN persons_from_erc e ON r.snils = e.snils
-		ORDER BY r.number DESC;
+												 (SELECT to_json(array_agg(row_to_json(d)))
+												  FROM (SELECT r1.date                               AS timestamp,
+															   'Активирована карта с №' || r1.number AS content
+														FROM persons_from_rstk r1
+														WHERE r1.snils = r.snils
+														UNION ALL
+														SELECT e1.date                             AS timestamp,
+															   'Куплено ' || e1.count || 'талонов' AS content
+														FROM persons_from_erc e1
+														WHERE e1.snils = r.snils
+														ORDER BY timestamp) AS d)
+																								  AS timeline
+				   FROM persons_from_rstk r
+							INNER JOIN persons_from_erc e ON r.snils = e.snils
+				   ORDER BY r.number DESC)
+		SELECT *
+		FROM a
+		ORDER BY a.date DESC;
 	`
 	stmt, err := br.db.PrepareNamedContext(ctx, query)
 	if err != nil {
