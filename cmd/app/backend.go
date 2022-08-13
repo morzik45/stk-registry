@@ -13,12 +13,13 @@ import (
 
 func (app *App) initBackend() {
 	api := app.router.Group("/api")
-
 	api.GET("/health", app.health)
-
 	api.GET("/retiree", app.retiree)
-	api.GET("/breakers", app.breakersView)
-	api.POST("/breakers/check", app.breakersSet)
+
+	breakers := api.Group("/breakers")
+	breakers.GET("", app.breakersView)
+	breakers.POST("/check", app.breakersSet)
+	breakers.POST("/make-excel", app.makeBreakersExcel)
 
 	updates := api.Group("/updates")
 	updates.GET("", app.getUpdatesInfo)

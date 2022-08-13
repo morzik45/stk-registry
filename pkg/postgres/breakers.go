@@ -10,14 +10,14 @@ import (
 )
 
 type Breaker struct {
-	ID       int64  `json:"id" db:"id"`
-	Snils    string `json:"snils" db:"snils"`
-	Checked  bool   `json:"checked" db:"checked"`
-	Datetime string `json:"datetime" db:"datetime"`
+	ID       int64     `json:"id" db:"id"`
+	Snils    string    `json:"snils" db:"snils"`
+	Checked  bool      `json:"checked" db:"checked"`
+	Datetime time.Time `json:"datetime" db:"datetime"`
 }
 
 type BreakerView struct {
-	Date     string          `json:"date" db:"date"`
+	Date     time.Time       `json:"date" db:"date"`
 	Snils    string          `json:"snils" db:"snils"`
 	Name     string          `json:"name" db:"name"`
 	Pan      string          `json:"pan" db:"pan"`
