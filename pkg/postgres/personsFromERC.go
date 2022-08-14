@@ -37,13 +37,24 @@ type PersonsFromErcForWeb struct {
 	SaleCoupons json.RawMessage `db:"sale_coupons" json:"sale_coupons"`
 }
 
+type PersonFromErcForCorrection struct {
+	ID         int       `db:"id"`
+	Family     string    `db:"family"`
+	Name       string    `db:"name"`
+	Patronymic string    `db:"patronymic"`
+	Birthdate  time.Time `db:"birthdate"`
+	Snils      string    `db:"snils"`
+}
+
 type PersonsFromERC struct {
 	db     *sqlx.DB
 	stmts  []*sqlx.NamedStmt
 	logger *zap.Logger
 
-	createMany func(ctx context.Context, persons []PersonFromERC, tx *sqlx.Tx) error
-	get        func(ctx context.Context, search string, limit, offset int64) ([]PersonsFromErcForWeb, error)
+	createMany           func(ctx context.Context, persons []PersonFromERC, tx *sqlx.Tx) error
+	get                  func(ctx context.Context, search string, limit, offset int64) ([]PersonsFromErcForWeb, error)
+	selectForCorrection  func(ctx context.Context) ([]PersonFromErcForCorrection, error)
+	updateFromCorrection func(ctx context.Context, person PersonFromErcForCorrection, tx *sqlx.Tx) error
 }
 
 func NewPersonsFromERC(ctx context.Context, db *sqlx.DB, logger *zap.Logger) (*PersonsFromERC, error) {
@@ -82,6 +93,18 @@ func (pfp *PersonsFromERC) initPersonsFromErc(ctx context.Context) (err error) {
 	pfp.stmts = append(pfp.stmts, stmt)
 
 	pfp.get, stmt, err = pfp.initGet(ctx)
+	if err != nil {
+		return
+	}
+	pfp.stmts = append(pfp.stmts, stmt)
+
+	pfp.selectForCorrection, stmt, err = pfp.initSelectForCorrection(ctx)
+	if err != nil {
+		return
+	}
+	pfp.stmts = append(pfp.stmts, stmt)
+
+	pfp.updateFromCorrection, stmt, err = pfp.initUpdateFromCorrection(ctx)
 	if err != nil {
 		return
 	}
@@ -161,5 +184,65 @@ func (pfp *PersonsFromERC) initGet(ctx context.Context) (func(ctx context.Contex
 			"offset": offset,
 		})
 		return
+	}, stmt, nil
+}
+
+func (pfp *PersonsFromERC) SelectForCorrection(ctx context.Context) ([]PersonFromErcForCorrection, error) {
+	if pfp.selectForCorrection == nil {
+		return nil, errors.New("selectForCorrection func is not defined")
+	}
+	return pfp.selectForCorrection(ctx)
+}
+
+func (pfp *PersonsFromERC) initSelectForCorrection(ctx context.Context) (func(ctx context.Context) ([]PersonFromErcForCorrection, error), *sqlx.NamedStmt, error) {
+	query := `
+		SELECT "id",
+			   "family",
+			   "name",
+			   "patronymic",
+			   "birthdate",
+			   "snils"
+		FROM persons_from_erc
+		WHERE "errors" IS NOT NULL
+		ORDER BY "id";
+	`
+	stmt, err := pfp.db.PrepareNamedContext(ctx, query)
+	if err != nil {
+		return nil, nil, err
+	}
+	return func(ctx context.Context) (persons []PersonFromErcForCorrection, err error) {
+		err = stmt.SelectContext(ctx, &persons, map[string]interface{}{})
+		return
+	}, stmt, nil
+}
+
+func (pfp *PersonsFromERC) UpdateFromCorrection(ctx context.Context, person PersonFromErcForCorrection, tx *sqlx.Tx) error {
+	if pfp.updateFromCorrection == nil {
+		return errors.New("updateFromCorrection func is not defined")
+	}
+	return pfp.updateFromCorrection(ctx, person, tx)
+}
+
+func (pfp *PersonsFromERC) initUpdateFromCorrection(ctx context.Context) (func(ctx context.Context, person PersonFromErcForCorrection, tx *sqlx.Tx) error, *sqlx.NamedStmt, error) {
+	query := `
+		UPDATE persons_from_erc
+		SET "errors" = NULL,
+		"snils" = :snils,
+		"birthdate" = :birthdate,
+		"family" = :family,
+		"name" = :name,
+		"patronymic" = :patronymic
+		WHERE "id" = :id;
+	`
+	stmt, err := pfp.db.PrepareNamedContext(ctx, query)
+	if err != nil {
+		return nil, nil, err
+	}
+	return func(ctx context.Context, person PersonFromErcForCorrection, tx *sqlx.Tx) error {
+		if tx != nil {
+			stmt = tx.NamedStmtContext(ctx, stmt)
+		}
+		_, err = stmt.ExecContext(ctx, person)
+		return err
 	}, stmt, nil
 }
