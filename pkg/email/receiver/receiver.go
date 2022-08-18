@@ -103,11 +103,8 @@ func (r *Receiver) disconnect() {
 	r.connMutex.Unlock()
 }
 
-func (r *Receiver) GetNewFromErc() (isHaveNew bool, err error) {
-	return r.Receive(r.config.Email.FromErc, r.GetLastEmail())
-}
-
-func (r *Receiver) Receive(from string, afterTime time.Time) (isHaveNew bool, err error) {
+func (r *Receiver) Receive() (isHaveNew bool, err error) {
+	afterTime := r.GetLastEmail()
 	if err = r.connect(); err != nil {
 		return
 	}
@@ -131,7 +128,7 @@ func (r *Receiver) Receive(from string, afterTime time.Time) (isHaveNew bool, er
 		}
 
 		// Парсим сообщение
-		isNeedMore, _isHaveNew := r.parseMessage(mes.Bytes(), from, afterTime)
+		isNeedMore, _isHaveNew := r.parseMessage(mes.Bytes(), afterTime)
 		if !isHaveNew && _isHaveNew { // Если не переворачивали флаг ранее и есть новые данные
 			isHaveNew = true
 		}
@@ -144,16 +141,7 @@ func (r *Receiver) Receive(from string, afterTime time.Time) (isHaveNew bool, er
 	return
 }
 
-func (r *Receiver) getTypeID(from string) int {
-	switch from {
-	case r.config.Email.FromErc:
-		return 1
-	default:
-		return 0
-	}
-}
-
-func (r *Receiver) parseMessage(body []byte, from string, afterTime time.Time) (isNeedMore, isHaveNew bool) {
+func (r *Receiver) parseMessage(body []byte, afterTime time.Time) (isNeedMore, isHaveNew bool) {
 	var err error
 	isNeedMore = true // по умолчанию нужно продолжать получать сообщения
 
@@ -179,17 +167,21 @@ func (r *Receiver) parseMessage(body []byte, from string, afterTime time.Time) (
 	}
 
 	var fromAddr []*mail.Address
-	if fromAddr, err = header.AddressList("From"); err == nil {
+	if fromAddr, err = header.AddressList("From"); err != nil {
+		r.logger.Error("Error getting from address", zap.Error(err))
+		return
+	} else {
 		e.FromAddress = fromAddr[0].Address
-		if e.FromAddress != from {
-			r.logger.Info("Email from address is not expected", zap.String("from", e.FromAddress), zap.String("expected", from))
+		switch e.FromAddress {
+		case r.config.Email.FromErc:
+			e.TypeID = 1
+		case r.config.Email.FromCorrection:
+			e.TypeID = 2 // FIXME: Добавить в базу второй тип письма
+		default:
+			r.logger.Info("Email from address is not expected", zap.String("from", e.FromAddress), zap.String("erc", r.config.Email.FromErc), zap.String("correction", r.config.Email.FromCorrection))
 			// Мы ждём письмо от нужного адреса, но получили письмо от другого адреса, просто пропускаем
 			return
 		}
-		e.TypeID = r.getTypeID(e.FromAddress)
-	} else {
-		r.logger.Error("Error getting from address", zap.Error(err))
-		return
 	}
 
 	e.MessageID, err = header.MessageID()
@@ -235,6 +227,8 @@ func (r *Receiver) parseMessage(body []byte, from string, afterTime time.Time) (
 				r.logger.Error("Error getting filename", zap.Error(err))
 				continue
 			}
+
+			// FIXME: Далее уже от типа письма ветвиться
 
 			// Сохраняем вложение в транзакции.
 			err = r.db.ErcUpdates.Create(context.TODO(), &eu, tx)

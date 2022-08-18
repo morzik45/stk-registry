@@ -24,12 +24,18 @@ func (app *App) RunPeriodicTasks() {
 		)
 		app.emailCheckerScheduler.Start(func() {
 			defer utils.Recover(app.logger)
-			isHaveNew, err := app.emailReceiver.GetNewFromErc()
+			isHaveNew, err := app.emailReceiver.Receive()
 			if err != nil {
 				app.logger.Error("failed to get new from erc", zap.Error(err))
 			}
 			if isHaveNew {
 				app.logger.Info("new erc message found")
+				ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+				defer cancel()
+				err = app.MakeAndSendToCorrection(ctx)
+				if err != nil {
+					app.logger.Error("failed to make and send to correction", zap.Error(err))
+				}
 			}
 		}, true)
 	}
@@ -53,6 +59,28 @@ func (app *App) RunPeriodicTasks() {
 			app.logger.Error("failed to make and send report to erc", zap.Error(err))
 		}
 	}, true)
+}
+
+func (app *App) MakeAndSendToCorrection(ctx context.Context) (err error) {
+	// Получим из базы записи с ошибками
+	forCorrection, err := app.db.PersonsFromErc.SelectForCorrection(ctx)
+	if err != nil {
+		app.logger.Error("failed to get persons for correction", zap.Error(err))
+		return
+	}
+	// сформируем Excel файл для отправки на коррекцию
+	correction, err := utils.MakeExcelForCorrection(forCorrection)
+	if err != nil {
+		app.logger.Error("failed to make excel for correction", zap.Error(err))
+		return
+	}
+	// отправим письмо с коррекцией на почту
+	err = sender.SendFiles([]io.Reader{correction}, app.cfg.Email.ToCorrection, "subject", app.cfg)
+	if err != nil {
+		app.logger.Error("failed to send correction", zap.Error(err))
+		return
+	}
+	return
 }
 
 // MakeAndSendReportToERC отправляет отчёт в ЕРЦ по выбранным картам
