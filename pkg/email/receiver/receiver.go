@@ -10,6 +10,7 @@ import (
 	"github.com/morzik45/stk-registry/pkg/config"
 	"github.com/morzik45/stk-registry/pkg/persons"
 	"github.com/morzik45/stk-registry/pkg/postgres"
+	"github.com/morzik45/stk-registry/pkg/utils"
 	"go.uber.org/zap"
 	"io"
 	"sync"
@@ -176,7 +177,7 @@ func (r *Receiver) parseMessage(body []byte, afterTime time.Time) (isNeedMore, i
 		case r.config.Email.FromErc:
 			e.TypeID = 1
 		case r.config.Email.FromCorrection:
-			e.TypeID = 2 // FIXME: Добавить в базу второй тип письма
+			e.TypeID = 2
 		default:
 			r.logger.Info("Email from address is not expected", zap.String("from", e.FromAddress), zap.String("erc", r.config.Email.FromErc), zap.String("correction", r.config.Email.FromCorrection))
 			// Мы ждём письмо от нужного адреса, но получили письмо от другого адреса, просто пропускаем
@@ -228,33 +229,51 @@ func (r *Receiver) parseMessage(body []byte, afterTime time.Time) (isNeedMore, i
 				continue
 			}
 
-			// FIXME: Далее уже от типа письма ветвиться
+			switch e.TypeID {
+			case 1: // ЕРЦ
+				// Сохраняем вложение в транзакции.
+				err = r.db.ErcUpdates.Create(context.TODO(), &eu, tx)
+				if err != nil {
+					r.logger.Error("Error creating erc update", zap.Error(err))
+					continue
+				}
 
-			// Сохраняем вложение в транзакции.
-			err = r.db.ErcUpdates.Create(context.TODO(), &eu, tx)
-			if err != nil {
-				r.logger.Error("Error creating erc update", zap.Error(err))
-				continue
-			}
-
-			ps := persons.ParseDocumentFromErc(part.Body, r.db.CorrectPersonsData)
-			if len(ps) == 0 {
-				r.logger.Info("No persons found in attachment", zap.String("filename", eu.Name))
-				continue
-			} else {
-				if !isHaveNew {
-					isHaveNew = true // Есть новые данные
+				ps := persons.ParseDocumentFromErc(part.Body, r.db.CorrectPersonsData)
+				if len(ps) == 0 {
+					r.logger.Info("No persons found in attachment", zap.String("filename", eu.Name))
+					continue
+				} else {
+					if !isHaveNew {
+						isHaveNew = true // Есть новые данные
+					}
+				}
+				for i := range ps {
+					ps[i].ErcUpdateID = eu.ID
+				}
+				err = r.db.PersonsFromErc.CreateMany(context.TODO(), ps, tx)
+				if err != nil {
+					r.logger.Error("Error creating persons from erc", zap.Error(err))
+					continue
+				}
+			case 2: // Коррекция
+				var correct []postgres.PersonFromErcForCorrection
+				correct, err = utils.ParseExcelForCorrection(part.Body, r.logger)
+				if err != nil {
+					r.logger.Error("Error parsing excel for correction", zap.Error(err))
+					continue
+				}
+				if len(correct) == 0 {
+					r.logger.Info("No persons found in attachment", zap.String("filename", eu.Name))
+					continue
+				}
+				for i := range correct {
+					err = r.db.PersonsFromErc.UpdateFromCorrection(context.TODO(), correct[i], tx)
+					if err != nil {
+						r.logger.Error("Error updating person from correction", zap.Error(err))
+						continue
+					}
 				}
 			}
-			for i := range ps {
-				ps[i].ErcUpdateID = eu.ID
-			}
-			err = r.db.PersonsFromErc.CreateMany(context.TODO(), ps, tx)
-			if err != nil {
-				r.logger.Error("Error creating persons from erc", zap.Error(err))
-				continue
-			}
-
 		}
 	}
 

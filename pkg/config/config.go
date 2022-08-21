@@ -50,8 +50,8 @@ type Config struct {
 		Password       string        `env:"EMAIL_PASSWORD"`
 		FromErc        string        `env:"EMAIL_FROM_ERC"`
 		ToErc          []string      `env:"EMAIL_TO_ERC"`
-		ToCorrection   []string      `env:"EMAIL_TO_CORRECTION"`   // FIXME: Добавить в конфиг
-		FromCorrection string        `env:"EMAIL_FROM_CORRECTION"` // FIXME: Добавить в конфиг
+		ToCorrection   []string      `env:"EMAIL_TO_CORRECTION"`
+		FromCorrection string        `env:"EMAIL_FROM_CORRECTION"`
 		SendReportAt   TimeToday     `env:"EMAIL_SEND_REPORT_AT" envDefault:"06:00"`
 		CheckInterval  time.Duration `env:"EMAIL_CHECK_INTERVAL" envDefault:"30m"`
 	}
