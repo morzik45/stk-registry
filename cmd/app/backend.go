@@ -155,7 +155,7 @@ func (app *App) uploadRSTK(c *gin.Context) {
 }
 
 func (app *App) uploadERC(c *gin.Context) {
-	_, err := app.emailReceiver.GetNewFromErc()
+	_, err := app.emailReceiver.Receive()
 	if err != nil {
 		c.JSON(500, gin.H{
 			"status": "error",

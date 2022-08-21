@@ -8,7 +8,8 @@ CREATE TABLE IF NOT EXISTS email_types
 );
 
 INSERT INTO email_types (name, description)
-VALUES ('erc_register', 'Реестр выданных купонов от ЕРЦ "Прогресс"');
+VALUES ('erc_register', 'Реестр выданных купонов от ЕРЦ'),
+       ('correction', 'Исправление данных по купонам');
 
 CREATE TABLE IF NOT EXISTS emails
 (
