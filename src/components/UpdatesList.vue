@@ -184,7 +184,7 @@
               </el-table-column>
               <el-table-column prop="datetime_parse" label="Обработан">
                 <template #default="props">
-                  {{ moment(props.row['updated_at']).format("LL") }}
+                  {{ moment(props.row['uploaded_at']).format("LL") }}
                 </template>
               </el-table-column>
               <el-table-column prop="lines" label="Выдано карт"> </el-table-column>
